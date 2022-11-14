@@ -1,0 +1,349 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 900px;
+                 height: 800px;
+                 background-color: #543D61;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#E9F1BF", "font": {"color": "white"}, "id": "butter", "label": "butter", "shape": "dot", "size": 31}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "sugar", "label": "sugar", "shape": "dot", "size": 34}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "flour", "label": "flour", "shape": "dot", "size": 25}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "egg", "label": "egg", "shape": "dot", "size": 26}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "milk", "label": "milk", "shape": "dot", "size": 17}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "brown sugar", "label": "brown sugar", "shape": "dot", "size": 13}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cinnamon", "label": "cinnamon", "shape": "dot", "size": 12}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "onion", "label": "onion", "shape": "dot", "size": 41}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "lemon", "label": "lemon", "shape": "dot", "size": 9}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "pepper", "label": "pepper", "shape": "dot", "size": 31}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cream cheese", "label": "cream cheese", "shape": "dot", "size": 6}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "walnut", "label": "walnut", "shape": "dot", "size": 7}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "nutmeg", "label": "nutmeg", "shape": "dot", "size": 8}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cheese", "label": "cheese", "shape": "dot", "size": 13}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "sour cream", "label": "sour cream", "shape": "dot", "size": 7}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "oats", "label": "oats", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "parsley", "label": "parsley", "shape": "dot", "size": 11}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "almond", "label": "almond", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "corn syrup", "label": "corn syrup", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "semisweet chocolate chip", "label": "semisweet chocolate chip", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "egg yolk", "label": "egg yolk", "shape": "dot", "size": 6}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "raisin", "label": "raisin", "shape": "dot", "size": 6}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "vegetable oil", "label": "vegetable oil", "shape": "dot", "size": 9}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "mushroom", "label": "mushroom", "shape": "dot", "size": 6}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "garlic", "label": "garlic", "shape": "dot", "size": 27}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "broth", "label": "broth", "shape": "dot", "size": 5}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "chocolate", "label": "chocolate", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cocoa powder", "label": "cocoa powder", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cloves", "label": "cloves", "shape": "dot", "size": 6}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "buttermilk", "label": "buttermilk", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "heavy whipping cream", "label": "heavy whipping cream", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "coconut", "label": "coconut", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "margarine", "label": "margarine", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cornstarch", "label": "cornstarch", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "egg whites", "label": "egg whites", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "ginger", "label": "ginger", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "allspice", "label": "allspice", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "pumpkin", "label": "pumpkin", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "vinegar", "label": "vinegar", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cream", "label": "cream", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "white sugar", "label": "white sugar", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "tomato", "label": "tomato", "shape": "dot", "size": 14}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "olive oil", "label": "olive oil", "shape": "dot", "size": 13}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "bread crumbs", "label": "bread crumbs", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "garlic powder", "label": "garlic powder", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "bell pepper", "label": "bell pepper", "shape": "dot", "size": 9}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "celery", "label": "celery", "shape": "dot", "size": 5}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "beef", "label": "beef", "shape": "dot", "size": 5}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "carrot", "label": "carrot", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "lime", "label": "lime", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "thyme", "label": "thyme", "shape": "dot", "size": 5}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "paprika", "label": "paprika", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "cumin", "label": "cumin", "shape": "dot", "size": 4}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "potato", "label": "potato", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "soy sauce", "label": "soy sauce", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "pepper flakes", "label": "pepper flakes", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "tomato paste", "label": "tomato paste", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "chili powder", "label": "chili powder", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "olives", "label": "olives", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "rice", "label": "rice", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "mayonnaise", "label": "mayonnaise", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "basil", "label": "basil", "shape": "dot", "size": 5}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "worcestershire sauce", "label": "worcestershire sauce", "shape": "dot", "size": 1}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "wine", "label": "wine", "shape": "dot", "size": 7}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "chile pepper", "label": "chile pepper", "shape": "dot", "size": 2}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "tomato sauce", "label": "tomato sauce", "shape": "dot", "size": 3}, {"color": "#E9F1BF", "font": {"color": "white"}, "id": "pasta", "label": "pasta", "shape": "dot", "size": 1}]);
+                  edges = new vis.DataSet([{"from": "butter", "to": "sugar", "width": 1}, {"from": "butter", "to": "flour", "width": 1}, {"from": "butter", "to": "egg", "width": 1}, {"from": "butter", "to": "milk", "width": 1}, {"from": "butter", "to": "brown sugar", "width": 1}, {"from": "butter", "to": "cinnamon", "width": 1}, {"from": "butter", "to": "onion", "width": 1}, {"from": "butter", "to": "lemon", "width": 1}, {"from": "butter", "to": "pepper", "width": 1}, {"from": "butter", "to": "cream cheese", "width": 1}, {"from": "butter", "to": "walnut", "width": 1}, {"from": "butter", "to": "nutmeg", "width": 1}, {"from": "butter", "to": "cheese", "width": 1}, {"from": "butter", "to": "sour cream", "width": 1}, {"from": "butter", "to": "oats", "width": 1}, {"from": "butter", "to": "parsley", "width": 1}, {"from": "butter", "to": "almond", "width": 1}, {"from": "butter", "to": "corn syrup", "width": 1}, {"from": "butter", "to": "semisweet chocolate chip", "width": 1}, {"from": "butter", "to": "egg yolk", "width": 1}, {"from": "butter", "to": "raisin", "width": 1}, {"from": "butter", "to": "vegetable oil", "width": 1}, {"from": "butter", "to": "mushroom", "width": 1}, {"from": "butter", "to": "garlic", "width": 1}, {"from": "butter", "to": "broth", "width": 1}, {"from": "butter", "to": "chocolate", "width": 1}, {"from": "butter", "to": "cocoa powder", "width": 1}, {"from": "butter", "to": "cloves", "width": 1}, {"from": "butter", "to": "buttermilk", "width": 1}, {"from": "butter", "to": "heavy whipping cream", "width": 1}, {"from": "butter", "to": "coconut", "width": 1}, {"from": "sugar", "to": "flour", "width": 1}, {"from": "sugar", "to": "egg", "width": 1}, {"from": "sugar", "to": "milk", "width": 1}, {"from": "sugar", "to": "cinnamon", "width": 1}, {"from": "sugar", "to": "lemon", "width": 1}, {"from": "sugar", "to": "brown sugar", "width": 1}, {"from": "sugar", "to": "vegetable oil", "width": 1}, {"from": "sugar", "to": "cream cheese", "width": 1}, {"from": "sugar", "to": "walnut", "width": 1}, {"from": "sugar", "to": "nutmeg", "width": 1}, {"from": "sugar", "to": "margarine", "width": 1}, {"from": "sugar", "to": "egg yolk", "width": 1}, {"from": "sugar", "to": "almond", "width": 1}, {"from": "sugar", "to": "pepper", "width": 1}, {"from": "sugar", "to": "cornstarch", "width": 1}, {"from": "sugar", "to": "onion", "width": 1}, {"from": "sugar", "to": "heavy whipping cream", "width": 1}, {"from": "sugar", "to": "egg whites", "width": 1}, {"from": "sugar", "to": "sour cream", "width": 1}, {"from": "sugar", "to": "cloves", "width": 1}, {"from": "sugar", "to": "buttermilk", "width": 1}, {"from": "sugar", "to": "corn syrup", "width": 1}, {"from": "sugar", "to": "ginger", "width": 1}, {"from": "sugar", "to": "chocolate", "width": 1}, {"from": "sugar", "to": "cocoa powder", "width": 1}, {"from": "sugar", "to": "semisweet chocolate chip", "width": 1}, {"from": "sugar", "to": "allspice", "width": 1}, {"from": "sugar", "to": "raisin", "width": 1}, {"from": "sugar", "to": "coconut", "width": 1}, {"from": "sugar", "to": "pumpkin", "width": 1}, {"from": "sugar", "to": "oats", "width": 1}, {"from": "sugar", "to": "vinegar", "width": 1}, {"from": "sugar", "to": "cream", "width": 1}, {"from": "flour", "to": "egg", "width": 1}, {"from": "flour", "to": "milk", "width": 1}, {"from": "flour", "to": "cinnamon", "width": 1}, {"from": "flour", "to": "vegetable oil", "width": 1}, {"from": "flour", "to": "brown sugar", "width": 1}, {"from": "flour", "to": "onion", "width": 1}, {"from": "flour", "to": "lemon", "width": 1}, {"from": "flour", "to": "walnut", "width": 1}, {"from": "flour", "to": "pepper", "width": 1}, {"from": "flour", "to": "nutmeg", "width": 1}, {"from": "flour", "to": "margarine", "width": 1}, {"from": "flour", "to": "cream cheese", "width": 1}, {"from": "flour", "to": "cheese", "width": 1}, {"from": "flour", "to": "almond", "width": 1}, {"from": "flour", "to": "egg yolk", "width": 1}, {"from": "flour", "to": "buttermilk", "width": 1}, {"from": "flour", "to": "sour cream", "width": 1}, {"from": "flour", "to": "garlic", "width": 1}, {"from": "flour", "to": "cloves", "width": 1}, {"from": "flour", "to": "cocoa powder", "width": 1}, {"from": "flour", "to": "raisin", "width": 1}, {"from": "flour", "to": "white sugar", "width": 1}, {"from": "flour", "to": "parsley", "width": 1}, {"from": "egg", "to": "milk", "width": 1}, {"from": "egg", "to": "cinnamon", "width": 1}, {"from": "egg", "to": "brown sugar", "width": 1}, {"from": "egg", "to": "vegetable oil", "width": 1}, {"from": "egg", "to": "nutmeg", "width": 1}, {"from": "egg", "to": "onion", "width": 1}, {"from": "egg", "to": "walnut", "width": 1}, {"from": "egg", "to": "lemon", "width": 1}, {"from": "egg", "to": "pepper", "width": 1}, {"from": "egg", "to": "cheese", "width": 1}, {"from": "egg", "to": "cream cheese", "width": 1}, {"from": "egg", "to": "sour cream", "width": 1}, {"from": "egg", "to": "raisin", "width": 1}, {"from": "egg", "to": "buttermilk", "width": 1}, {"from": "egg", "to": "almond", "width": 1}, {"from": "egg", "to": "tomato", "width": 1}, {"from": "egg", "to": "margarine", "width": 1}, {"from": "egg", "to": "cloves", "width": 1}, {"from": "egg", "to": "olive oil", "width": 1}, {"from": "egg", "to": "semisweet chocolate chip", "width": 1}, {"from": "egg", "to": "bread crumbs", "width": 1}, {"from": "egg", "to": "garlic powder", "width": 1}, {"from": "egg", "to": "egg yolk", "width": 1}, {"from": "milk", "to": "cinnamon", "width": 1}, {"from": "milk", "to": "brown sugar", "width": 1}, {"from": "milk", "to": "onion", "width": 1}, {"from": "milk", "to": "pepper", "width": 1}, {"from": "milk", "to": "nutmeg", "width": 1}, {"from": "milk", "to": "vegetable oil", "width": 1}, {"from": "milk", "to": "cheese", "width": 1}, {"from": "milk", "to": "margarine", "width": 1}, {"from": "milk", "to": "walnut", "width": 1}, {"from": "milk", "to": "egg yolk", "width": 1}, {"from": "milk", "to": "cream cheese", "width": 1}, {"from": "milk", "to": "lemon", "width": 1}, {"from": "milk", "to": "coconut", "width": 1}, {"from": "cinnamon", "to": "brown sugar", "width": 1}, {"from": "cinnamon", "to": "nutmeg", "width": 1}, {"from": "cinnamon", "to": "cloves", "width": 1}, {"from": "cinnamon", "to": "vegetable oil", "width": 1}, {"from": "cinnamon", "to": "ginger", "width": 1}, {"from": "cinnamon", "to": "raisin", "width": 1}, {"from": "cinnamon", "to": "walnut", "width": 1}, {"from": "onion", "to": "pepper", "width": 1}, {"from": "onion", "to": "garlic", "width": 1}, {"from": "onion", "to": "tomato", "width": 1}, {"from": "onion", "to": "bell pepper", "width": 1}, {"from": "onion", "to": "olive oil", "width": 1}, {"from": "onion", "to": "cheese", "width": 1}, {"from": "onion", "to": "parsley", "width": 1}, {"from": "onion", "to": "celery", "width": 1}, {"from": "onion", "to": "beef", "width": 1}, {"from": "onion", "to": "carrot", "width": 1}, {"from": "onion", "to": "mushroom", "width": 1}, {"from": "onion", "to": "lime", "width": 1}, {"from": "onion", "to": "broth", "width": 1}, {"from": "onion", "to": "thyme", "width": 1}, {"from": "onion", "to": "vegetable oil", "width": 1}, {"from": "onion", "to": "garlic powder", "width": 1}, {"from": "onion", "to": "paprika", "width": 1}, {"from": "onion", "to": "sour cream", "width": 1}, {"from": "onion", "to": "cumin", "width": 1}, {"from": "onion", "to": "potato", "width": 1}, {"from": "onion", "to": "brown sugar", "width": 1}, {"from": "onion", "to": "soy sauce", "width": 1}, {"from": "onion", "to": "pepper flakes", "width": 1}, {"from": "onion", "to": "tomato paste", "width": 1}, {"from": "onion", "to": "chili powder", "width": 1}, {"from": "onion", "to": "olives", "width": 1}, {"from": "onion", "to": "cream cheese", "width": 1}, {"from": "onion", "to": "rice", "width": 1}, {"from": "onion", "to": "mayonnaise", "width": 1}, {"from": "onion", "to": "lemon", "width": 1}, {"from": "onion", "to": "basil", "width": 1}, {"from": "onion", "to": "worcestershire sauce", "width": 1}, {"from": "onion", "to": "wine", "width": 1}, {"from": "onion", "to": "chile pepper", "width": 1}, {"from": "onion", "to": "tomato sauce", "width": 1}, {"from": "onion", "to": "vinegar", "width": 1}, {"from": "pepper", "to": "garlic", "width": 1}, {"from": "pepper", "to": "tomato", "width": 1}, {"from": "pepper", "to": "olive oil", "width": 1}, {"from": "pepper", "to": "parsley", "width": 1}, {"from": "pepper", "to": "paprika", "width": 1}, {"from": "pepper", "to": "celery", "width": 1}, {"from": "pepper", "to": "bell pepper", "width": 1}, {"from": "pepper", "to": "cheese", "width": 1}, {"from": "pepper", "to": "lime", "width": 1}, {"from": "pepper", "to": "basil", "width": 1}, {"from": "pepper", "to": "carrot", "width": 1}, {"from": "pepper", "to": "garlic powder", "width": 1}, {"from": "pepper", "to": "thyme", "width": 1}, {"from": "pepper", "to": "cumin", "width": 1}, {"from": "pepper", "to": "beef", "width": 1}, {"from": "pepper", "to": "vegetable oil", "width": 1}, {"from": "pepper", "to": "wine", "width": 1}, {"from": "pepper", "to": "potato", "width": 1}, {"from": "pepper", "to": "brown sugar", "width": 1}, {"from": "pepper", "to": "soy sauce", "width": 1}, {"from": "pepper", "to": "sour cream", "width": 1}, {"from": "pepper", "to": "mushroom", "width": 1}, {"from": "pepper", "to": "chili powder", "width": 1}, {"from": "pepper", "to": "tomato sauce", "width": 1}, {"from": "pepper", "to": "broth", "width": 1}, {"from": "garlic", "to": "olive oil", "width": 1}, {"from": "garlic", "to": "tomato", "width": 1}, {"from": "garlic", "to": "parsley", "width": 1}, {"from": "garlic", "to": "bell pepper", "width": 1}, {"from": "garlic", "to": "basil", "width": 1}, {"from": "garlic", "to": "lime", "width": 1}, {"from": "garlic", "to": "thyme", "width": 1}, {"from": "garlic", "to": "cumin", "width": 1}, {"from": "garlic", "to": "cheese", "width": 1}, {"from": "garlic", "to": "celery", "width": 1}, {"from": "garlic", "to": "pepper flakes", "width": 1}, {"from": "garlic", "to": "vegetable oil", "width": 1}, {"from": "garlic", "to": "lemon", "width": 1}, {"from": "garlic", "to": "wine", "width": 1}, {"from": "garlic", "to": "mushroom", "width": 1}, {"from": "garlic", "to": "paprika", "width": 1}, {"from": "garlic", "to": "soy sauce", "width": 1}, {"from": "garlic", "to": "chile pepper", "width": 1}, {"from": "garlic", "to": "beef", "width": 1}, {"from": "garlic", "to": "pasta", "width": 1}, {"from": "garlic", "to": "carrot", "width": 1}, {"from": "garlic", "to": "tomato paste", "width": 1}, {"from": "garlic", "to": "tomato sauce", "width": 1}, {"from": "brown sugar", "to": "nutmeg", "width": 1}, {"from": "brown sugar", "to": "walnut", "width": 1}, {"from": "brown sugar", "to": "sour cream", "width": 1}, {"from": "brown sugar", "to": "oats", "width": 1}, {"from": "brown sugar", "to": "raisin", "width": 1}, {"from": "tomato", "to": "olive oil", "width": 1}, {"from": "tomato", "to": "bell pepper", "width": 1}, {"from": "tomato", "to": "parsley", "width": 1}, {"from": "tomato", "to": "basil", "width": 1}, {"from": "tomato", "to": "cheese", "width": 1}, {"from": "tomato", "to": "lime", "width": 1}, {"from": "tomato", "to": "cumin", "width": 1}, {"from": "tomato", "to": "beef", "width": 1}, {"from": "tomato", "to": "celery", "width": 1}, {"from": "tomato", "to": "wine", "width": 1}, {"from": "bell pepper", "to": "olive oil", "width": 1}, {"from": "bell pepper", "to": "mushroom", "width": 1}, {"from": "bell pepper", "to": "parsley", "width": 1}, {"from": "bell pepper", "to": "broth", "width": 1}, {"from": "bell pepper", "to": "cheese", "width": 1}, {"from": "olive oil", "to": "basil", "width": 1}, {"from": "olive oil", "to": "parsley", "width": 1}, {"from": "olive oil", "to": "cheese", "width": 1}, {"from": "olive oil", "to": "lemon", "width": 1}, {"from": "olive oil", "to": "broth", "width": 1}, {"from": "olive oil", "to": "wine", "width": 1}, {"from": "olive oil", "to": "mushroom", "width": 1}, {"from": "lemon", "to": "egg yolk", "width": 1}, {"from": "cheese", "to": "parsley", "width": 1}, {"from": "cheese", "to": "garlic powder", "width": 1}, {"from": "cheese", "to": "beef", "width": 1}, {"from": "parsley", "to": "thyme", "width": 1}, {"from": "parsley", "to": "wine", "width": 1}, {"from": "celery", "to": "carrot", "width": 1}, {"from": "nutmeg", "to": "cloves", "width": 1}, {"from": "thyme", "to": "wine", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
