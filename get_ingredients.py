@@ -7,7 +7,13 @@ from random import randint
 import re
 
 
-def parse_ingredient_list(recipe_id):
+def format_ingredient(ingredient):
+    """
+        Function to format an ingredient string -
+        remove stopwords, extra words and extra symbols, lower, convert to singular form.
+        :param ingredient: a string of a recipe ingredient (one or multiple words)
+        :return: a list of formatted words of the ingredient
+    """
     stopwords = ('cut', 'inch', 'salt', 'water', 'baking', 'soda', 'temperature', 'yeast', 'or', 'and', 'well', 'for',
                  'in', 'but', 'topping', 'color', 'coloring', 'beverage', 'according', 'ice', 'mix', 'tartar', 'spray',
                  'plastic', 'substitute')
@@ -30,6 +36,34 @@ def parse_ingredient_list(recipe_id):
                        'cloves', 'noodles', 'crumbs', 'cookies', 'cornflakes', 'flakes', 'whites', 'chives', 'couscous',
                        'hummus', 'grapes', 'sprinkles', 'pickles', 'asparagus', 'prunes')
 
+    accepted_words = []
+    for word in ingredient.split():
+        word = word.strip().lower()
+        if word in stopwords:
+            accepted_words = []
+            break
+        if word not in s_complications:
+            if word[-3:] == 'ies':
+                word = word[:-3] + 'y'
+            if word[-2:] == 'es':
+                word = word[:-2]
+            if word[-1] == 's':
+                word = word[:-1]
+        if word in extrawords or re.match(r".*ed", word) or re.match(r".*an", word) or re.match(r".*en", word) \
+                or re.match(r".*ly", word) or re.match(r".*®", word) or re.match(r".*les", word) or \
+                re.match(r".*™", word) or not word.isalpha() or len(word) < 3:
+            continue
+        accepted_words.append(word)
+
+    return accepted_words
+
+
+def parse_ingredient_list(recipe_id):
+    """
+        Function to extract a list of ingredients from a recipe page
+        :param recipe_id: an integer id of a recipe from allrecipes.com
+        :return: a list of ingredients, formatted and with removed stopwords
+    """
     try:
         r = requests.get(f"https://www.allrecipes.com/recipe/{recipe_id}/")
         page = BeautifulSoup(r.text, 'html.parser')
@@ -37,31 +71,15 @@ def parse_ingredient_list(recipe_id):
         filtered_ingredients = []
 
         for ing in ingredients:
-            accepted_words = []
-            ing = ing.split()
-            for word in ing:
-                word = word.strip().lower()
-                if word in stopwords:
-                    accepted_words = []
-                    break
-                if word not in s_complications:
-                    if word[-3:] == 'ies':
-                        word = word[:-3] + 'y'
-                    if word[-2:] == 'es':
-                        word = word[:-2]
-                    if word[-1] == 's':
-                        word = word[:-1]
-                if word in extrawords or re.match(r".*ed", word) or re.match(r".*an", word) or re.match(r".*en", word) \
-                        or re.match(r".*ly", word) or re.match(r".*®", word) or re.match(r".*les", word) or \
-                        re.match(r".*™", word) or not word.isalpha() or len(word) < 3:
-                    continue
-                accepted_words.append(word)
+            accepted_words = format_ingredient(ing)
 
             if accepted_words:
                 accepted_ingredient = ' '.join(accepted_words)
-                l = accepted_ingredient.find('(')
-                if l != -1:
-                    accepted_ingredient = accepted_ingredient[:l - 1]
+
+                # removing extra information in brackets (if there is any)
+                br = accepted_ingredient.find('(')
+                if br != -1:
+                    accepted_ingredient = accepted_ingredient[:br - 1]
 
                 filtered_ingredients.append(accepted_ingredient)
 
@@ -74,6 +92,11 @@ def parse_ingredient_list(recipe_id):
 
 
 def update_database(recipe_id):
+    """
+        Write all possible ingredient pairs from an ingredient list to a database.
+        :param recipe_id: an integer id of a recipe from allrecipes.com
+        :return: a string message about the task completion
+    """
     ingredient_list = parse_ingredient_list(recipe_id)
     if not ingredient_list:
         return None
@@ -97,6 +120,11 @@ def update_database(recipe_id):
 
 
 def get_new_recipes(quantity):
+    """
+        Function to get ingredient pairs from a given number of random recipes from allrecipes.com.
+        :param quantity: an integer - a number of recipes to browse
+        :return: -
+    """
     s = tracker_session()
     k = 0
     all = 0
