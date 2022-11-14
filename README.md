@@ -8,6 +8,6 @@ Data is parsed from <a href="https://www.allrecipes.com"><i>allrecipes.com</i></
 DB - <a href="https://www.sqlalchemy.org/">SQLAlchemy</a><br>
 Currently there are <b>11k+</b> ingredient pairings in the DB.
 
-Self-made bot profile picture included :)
+Self-made bot profile picture included (it is intentionally blurry) :)
 
 ### Update: An ingredient network visualisation + a tiny analysis.
