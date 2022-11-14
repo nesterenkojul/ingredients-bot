@@ -9,3 +9,5 @@ DB - <a href="https://www.sqlalchemy.org/">SQLAlchemy</a><br>
 Currently there are <b>11k+</b> ingredient pairings in the DB.
 
 Self-made bot profile picture included :)
+
+### Update: An ingredient network visualisation + a tiny analysis.
